@@ -1,0 +1,1 @@
+{"name":"ant-room","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start","typecheck":"tsc --noEmit"},"engines":{"node":"22.x"},"dependencies":{"@supabase/supabase-js":"2.118.0","next":"16.4.4","react":"19.2.8","react-dom":"19.2.8"},"devDependencies":{"@types/node":"22","@types/react":"19","@types/react-dom":"19","typescript":"5"}}
