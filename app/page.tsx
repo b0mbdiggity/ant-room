@@ -159,12 +159,15 @@ export default function Home() {
   }
 
   return <main>
-    <header><div className="identity"><span className="mark" aria-hidden>✳</span><strong>ANT ROOM</strong><span className="edition">FIELD STATION / 01</span></div>
-      <div className="connection"><i className={connected ? "live" : ""} />{connected ? "실시간 연결" : "연결 대기"}</div>
-    </header>
-    <section className="intro">
-      <div><p className="eyebrow">THE UNDERGROUND MARKET CLUB</p><h1>지하 관측소<span>.</span></h1><p>개미들이 모여, 같은 차트를 보는 곳.</p></div>
-      <div className="room-choice">
+    <section className="viewport" aria-label="지하 관측소">
+      <Scene seats={active} slot={slot} ticker={ticker || "005930"} selected={selected}
+        onSelect={index => { if (index !== selected) { setReactions([]); setSelected(index); } }} />
+    </section>
+    <header>
+      <div className="identity glass"><span className="mark" aria-hidden>✳</span>
+        <div><h1>Ant Room</h1><span className="edition">지하 관측소</span></div>
+      </div>
+      <div className="room-choice glass">
         <label htmlFor="room">관측 종목</label>
         <select id="room" value={ticker} disabled={slot !== null || busy || rooms.length === 0} onChange={event => {
           setTicker(event.target.value); setSeats([]); setMessages([]); setReactions([]); setNotice(""); setConnected(false);
@@ -177,19 +180,16 @@ export default function Home() {
           {busy ? "처리 중…" : slot === null ? "게스트로 입장 ↗" : "방 나가기"}
         </button>
       </div>
-    </section>
+    </header>
+    <div className="status glass">
+      <span className="connection"><i className={connected ? "live" : ""} />{connected ? "실시간" : "연결 대기"}</span>
+      <span>{active.length} / {current?.capacity ?? "—"}석</span>
+      <span>데모 차트</span>
+    </div>
     <p className="notice" role="status">{!db ? "Supabase 환경 변수를 설정해 주세요." : notice || (slot === null ? "로그인 없이 둘러볼 수 있어요." : `게스트 · 좌석 ${String(slot).padStart(2, "0")}`)}</p>
-    <div className="workspace">
-      <section className="observatory" aria-label="관측소">
-        <div className="rail"><span>◉ &nbsp; OBSERVATORY <b>01</b></span><span>{active.length} / {current?.capacity ?? "—"} <b>좌석</b></span></div>
-        <div className="viewport"><Scene seats={active} slot={slot} ticker={ticker || "005930"} selected={selected} onSelect={index => { if (index !== selected) { setReactions([]); setSelected(index); } }} />
-          <span className="scene-tag">DEMO FEED</span>
-        </div>
-        <div className="rail controls"><span>⌘ &nbsp; WASD 이동 · 드래그 시점 회전</span><span>캔들을 눌러 반응 선택</span></div>
-      </section>
-      <aside>
-        <section className="reactions" aria-label="캔들 반응">
-          <p className="eyebrow">01 / CANDLE SIGNAL</p><h2>캔들 반응</h2>
+    <aside>
+        <details className="reactions glass">
+          <summary>캔들 반응</summary>
           <label className="candle-label" htmlFor="candle">캔들 {String(selected + 1).padStart(2, "0")} / 32</label>
           <input id="candle" type="range" min={0} max={31} value={selected} onChange={event => { setReactions([]); setSelected(Number(event.target.value)); }} />
           <dl className="prices">{([["시가", candle.open], ["고가", candle.high], ["저가", candle.low], ["종가", candle.close]] as const)
@@ -197,20 +197,17 @@ export default function Home() {
           <div className="emoji">{emojis.map((emoji, i) => <button key={emoji} disabled={slot === null || busy}
             aria-label={`${["불꽃","주목","다이아몬드"][i]} 반응 ${reactionCount(emoji)}개`}
             onClick={() => void act("react", { candle_id: selected, reaction: emoji })}>{emoji} <small>{reactionCount(emoji)}</small></button>)}</div>
-        </section>
-        <section className="chat" aria-label="채팅">
-          <p className="eyebrow">02 / COLONY WIRE</p><h2>방 채팅</h2>
-          <div ref={history} className="messages" role="log">
-            {messages.length === 0 && <p>아직 오간 메시지가 없어요.</p>}
-            {messages.map(message => <p key={message.id}><b>개미 {message.guest.slice(0, 4)}</b><br />{message.body}</p>)}
-          </div>
-          <form onSubmit={async event => { event.preventDefault(); if (draft.trim() && await act("chat", { message: draft.trim() })) setDraft(""); }}>
+        </details>
+    </aside>
+    <div className="chat">
+      {messages.length > 0 && <div ref={history} className="messages glass" role="log" aria-label="방 채팅">
+        {messages.map(message => <p key={message.id}><b>개미 {message.guest.slice(0, 4)}</b> {message.body}</p>)}
+      </div>}
+          <form className="glass" onSubmit={async event => { event.preventDefault(); if (draft.trim() && await act("chat", { message: draft.trim() })) setDraft(""); }}>
             <input aria-label="채팅 메시지" maxLength={180} placeholder={slot === null ? "입장 후 채팅할 수 있어요" : "메시지를 입력하세요"} value={draft} onChange={event => setDraft(event.target.value)} disabled={slot === null} />
             <button aria-label="메시지 전송" disabled={slot === null || !draft.trim() || busy}>↑</button>
           </form>
-        </section>
-      </aside>
     </div>
-    <footer><span>ANT ROOM · STATION 01</span><span>차트는 데모 데이터입니다.</span></footer>
+    <p className="controls glass">WASD 이동 <span>·</span> 드래그로 시점 회전</p>
   </main>;
 }

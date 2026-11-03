@@ -22,10 +22,17 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
     if (!context) { setSupported(false); return; }
     const ctx = context;
     let width = 0, height = 0, scale = 1;
-    let x = 0, y = 3.3, z = 15.5, yaw = 0, pitch = -.08;
+    let x = 0, y = 3.3, z = 17.5, yaw = 0, pitch = -.20;
+    let playerX = 0, playerZ = 12;
+    const followDistance = 5.5;
+
+    function followPlayer() {
+      x = playerX - Math.sin(yaw) * followDistance;
+      y = 3.1;
+      z = playerZ + Math.cos(yaw) * followDistance;
+    }
     let frame = 0, previous = 0, dirty = true;
     let pointer: { x: number; y: number; moved: boolean } | null = null;
-    let hits: { left: number; right: number; top: number; bottom: number; index: number }[] = [];
     let lastData = data.current;
     let lastSlot: number | null = null;
     const pressed = keys.current;
@@ -52,7 +59,7 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
       return [horizontal, dy * Math.cos(pitch) - depth * Math.sin(pitch), depth * Math.cos(pitch) + dy * Math.sin(pitch)];
     }
     function project([px, py, depth]: Point) {
-      const factor = Math.min(width * .87, height * 1.12) / depth;
+      const factor = Math.min(width * .87, height * .93) / depth;
       return { x: width / 2 + px * factor, y: height / 2 - py * factor, factor };
     }
     function polygon(points: Point[], color: string, fill = true) {
@@ -87,43 +94,41 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
     function draw() {
       const current = data.current;
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      ctx.fillStyle = "#19140f";
+      ctx.fillStyle = "#f4f8f9";
       ctx.fillRect(0, 0, width, height);
-      polygon([[-11,0,-2],[11,0,-2],[11,0,19],[-11,0,19]], "#39271e");
-      polygon([[-11,0,-2],[-11,9,-2],[-11,9,19],[-11,0,19]], "#2c2018");
-      polygon([[11,0,-2],[11,9,-2],[11,9,19],[11,0,19]], "#302117");
-      rect(-11,11,0,9,-2,"#4b3123");
-      for (let row = 0; row <= 18; row++) polygon([[-11,.008,row],[11,.008,row]], "#5a3c2a", false);
-      for (let col = -10; col <= 10; col++) polygon([[col,.01,-2],[col,.01,19]], "#54392a", false);
+      polygon([[-11,0,-2],[11,0,-2],[11,0,19],[-11,0,19]], "#e5edef");
+      polygon([[-11,0,-2],[-11,9,-2],[-11,9,19],[-11,0,19]], "#dce7e9");
+      polygon([[11,0,-2],[11,9,-2],[11,9,19],[11,0,19]], "#e8f0f1");
+      rect(-11,11,0,9,-2,"#f6f9fa");
+      rect(-11,11,0,9,19,"#e4edf0");
+      polygon([[-11,9,-2],[11,9,-2],[11,9,19],[-11,9,19]], "#f9fcfc");
+      for (let row = 0; row <= 18; row++) polygon([[-11,.008,row],[11,.008,row]], "#cedde1", false);
+      for (let col = -10; col <= 10; col++) polygon([[col,.01,-2],[col,.01,19]], "#d2e0e3", false);
       for (const side of [-1, 1]) {
-        rect(side * 9.6 - .58, side * 9.6 + .58, 0, 8, -1.85, "#65422d");
-        rect(side * 9.6 - .17, side * 9.6 + .17, 3, 6.8, -1.8, "#e4a765");
+        rect(side * 9.6 - .58, side * 9.6 + .58, 0, 8, -1.85, "#e0ecef");
+        rect(side * 9.6 - .17, side * 9.6 + .17, 3, 6.8, -1.8, "#ffffff");
       }
-      rect(-8.6,8.6,1.9,8.05,-1.65,"#9a6443");
-      rect(-8.43,8.43,2.05,7.9,-1.6,"#1b2420");
-      label(`${current.ticker}   /   DEMO MARKET`, [-7.8,7.23,-1.55], .32, "#d9f5c7");
-      for (let row = 0; row < 5; row++) polygon([[-7.8,2.75 + row,-1.54],[7.8,2.75 + row,-1.54]], "#3d4b40", false);
-      hits = [];
+      rect(-8.6,8.6,1.9,8.05,-1.65,"#c9dadd");
+      rect(-8.43,8.43,2.05,7.9,-1.6,"#ffffff");
+      label(`${current.ticker}   /   DEMO MARKET`, [-7.8,7.23,-1.55], .32, "#314b53");
+      for (let row = 0; row < 5; row++) polygon([[-7.8,2.75 + row,-1.54],[7.8,2.75 + row,-1.54]], "#dfebee", false);
       const chartY = (price: number) => 2.72 + (price - 38) * .056;
       if (z > -1.5) candles.forEach((candle, index) => {
         const cx = -7.55 + index * .48;
-        if (index === current.selected) rect(cx-.23,cx+.23,2.55,6.85,-1.53,"#374631");
-        const color = candle.close >= candle.open ? "#c6eb90" : "#f1a174";
+        if (index === current.selected) rect(cx-.23,cx+.23,2.55,6.85,-1.53,"#e6f3ee");
+        const color = candle.close >= candle.open ? "#21806c" : "#cb6e63";
         polygon([[cx,chartY(candle.low),-1.5],[cx,chartY(candle.high),-1.5]], color, false);
         rect(cx-.13,cx+.13,chartY(Math.min(candle.open,candle.close)),chartY(Math.max(candle.open,candle.close))+.022,-1.48,color);
-        const points = [camera([cx-.24,2.55,-1.48]),camera([cx+.24,6.85,-1.48])];
-        if (points.every(p => p[2] > .18)) {
-          const [a,b] = points.map(project);
-          hits.push({left: Math.min(a.x,b.x), right: Math.max(a.x,b.x), top: Math.min(a.y,b.y), bottom: Math.max(a.y,b.y), index});
-        }
       });
       // Ants use low-cost billboards sorted by camera depth.
       const occupants = new Map(current.seats.map(seat => [seat.slot, seat]));
       const props = Array.from({ length: 100 }, (_, i) => {
         const [sx, sz] = seatPosition(i + 1);
-        return { view: camera([sx, .06, sz]), occupant: occupants.get(i + 1), own: i + 1 === current.slot };
-      }).filter(p => p.view[2] > .32).sort((a,b) => b.view[2] - a.view[2]);
-      for (const prop of props) {
+        return { view: camera([sx, .06, sz]), occupant: occupants.has(i + 1) && i + 1 !== current.slot, own: false };
+      });
+      if (current.slot !== null) props.push({ view: camera([playerX, .06, playerZ]), occupant: true, own: true });
+      const visible = props.filter(prop => prop.view[2] > .32).sort((a,b) => b.view[2] - a.view[2]);
+      for (const prop of visible) {
         const p = project(prop.view);
         if (p.x < -80 || p.x > width + 80 || p.y < -80 || p.y > height + 100) continue;
         ctx.save();
@@ -135,10 +140,10 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
           ctx.ellipse(cx,cy,rx,ry,0,0,2*Math.PI);
           ctx.fill();
         };
-        oval(0,0,.47,.13,"#211912");
-        oval(0,-.09,.41,.12,prop.own ? "#d2f49d" : "#83583d");
+        oval(0,0,.47,.13,"#ccdadd");
+        oval(0,-.09,.41,.12,prop.own ? "#57b09b" : "#d4e2e5");
         if (prop.occupant || prop.own) {
-          ctx.strokeStyle = "#261a17";
+          ctx.strokeStyle = "#243b42";
           ctx.lineWidth = .055;
           ctx.beginPath();
           for (const side of [-1, 1]) {
@@ -152,11 +157,18 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
             ctx.lineTo(side*.34,-1.12);
           }
           ctx.stroke();
-          oval(0,-.34,.28,.25,"#693a30");
-          oval(0,-.57,.17,.18,"#a8583c");
-          oval(0,-.79,.245,.2,"#c5794f");
-          oval(-.085,-.82,.032,.044,"#241a17");
-          oval(.085,-.82,.032,.044,"#241a17");
+          oval(0,-.34,.28,.25,prop.own ? "#17665d" : "#34535c");
+          oval(0,-.57,.17,.18,"#4d6d76");
+          oval(0,-.79,.245,.2,"#668691");
+          if (prop.own) {
+            ctx.font = "700 .17px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#17665d";
+            ctx.fillText("나", 0, -1.29);
+          } else {
+            oval(-.085,-.82,.032,.044,"#102b33");
+            oval(.085,-.82,.032,.044,"#102b33");
+          }
         }
         ctx.restore();
       }
@@ -166,7 +178,9 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
       previous = now;
       if (data.current.slot !== lastSlot) {
         pressed.clear();
-        x = 0; z = 15.5; y = 3.3; yaw = 0; pitch = -.08;
+        playerX = 0; playerZ = 12; yaw = 0; pitch = -.20;
+        if (data.current.slot !== null) followPlayer();
+        else { x = 0; y = 3.3; z = 17.5; }
         dirty = true;
       }
       lastSlot = data.current.slot;
@@ -174,8 +188,10 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
         const forward = Number(pressed.has("w") || pressed.has("ArrowUp")) - Number(pressed.has("s") || pressed.has("ArrowDown"));
         const strafe = Number(pressed.has("d")) - Number(pressed.has("a"));
         yaw += (Number(pressed.has("ArrowRight")) - Number(pressed.has("ArrowLeft"))) * dt * 1.6;
-        x = Math.max(-10, Math.min(10, x + (Math.sin(yaw) * forward + Math.cos(yaw) * strafe) * dt * 4));
-        z = Math.max(.9, Math.min(18, z + (-Math.cos(yaw) * forward + Math.sin(yaw) * strafe) * dt * 4));
+        const speed = dt * 4 / (forward && strafe ? Math.SQRT2 : 1);
+        playerX = Math.max(-5.3, Math.min(5.3, playerX + (Math.sin(yaw) * forward + Math.cos(yaw) * strafe) * speed));
+        playerZ = Math.max(4.3, Math.min(13.3, playerZ + (-Math.cos(yaw) * forward + Math.sin(yaw) * strafe) * speed));
+        followPlayer();
         dirty = true;
       }
       if (dirty || lastData !== data.current) { draw(); dirty = false; lastData = data.current; }
@@ -204,16 +220,30 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
       const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
       if (!pointer.moved && Math.hypot(dx,dy) < 3) return;
       yaw -= dx * .006;
-      pitch = Math.max(-1, Math.min(.9, pitch + dy * .006));
+      pitch = Math.max(-.5, Math.min(-.13, pitch + dy * .004));
+      followPlayer();
       pointer = { x: event.clientX, y: event.clientY, moved: true };
       dirty = true;
     };
     element.onpointerup = event => {
       if (pointer && !pointer.moved) {
         const box = element.getBoundingClientRect();
-        const px = event.clientX - box.left, py = event.clientY - box.top;
-        const hit = hits.find(h => px >= h.left && px <= h.right && py >= h.top && py <= h.bottom);
-        if (hit) data.current.onSelect(hit.index);
+        const focal = Math.min(width * .87, height * .93);
+        const horizontal = (event.clientX - box.left - width / 2) / focal;
+        const vertical = (height / 2 - event.clientY + box.top) / focal;
+        const depth = Math.cos(pitch) - vertical * Math.sin(pitch);
+        const rayX = horizontal * Math.cos(yaw) + depth * Math.sin(yaw);
+        const rayY = vertical * Math.cos(pitch) + Math.sin(pitch);
+        const rayZ = horizontal * Math.sin(yaw) - depth * Math.cos(yaw);
+        if (rayZ < -.001) {
+          const distance = (-1.48 - z) / rayZ;
+          const chartX = x + rayX * distance;
+          const chartY = y + rayY * distance;
+          const index = Math.floor((chartX + 7.79) / .48);
+          if (chartY >= 2.55 && chartY <= 6.85 && index >= 0 && index < candles.length) {
+            data.current.onSelect(index);
+          }
+        }
       }
       pointer = null;
     };
@@ -232,7 +262,7 @@ export default function Scene({ seats, slot, ticker, selected, onSelect }: {
   return <>
     <canvas ref={canvas} aria-label="개미 관측소 3D 공간과 캔들 차트" />
     {!supported && <p>이 브라우저에서 3D 공간을 표시할 수 없습니다.</p>}
-    {slot !== null && <div className="touch" aria-label="이동 조작">
+    {slot !== null && <div className="touch glass" aria-label="이동 조작">
       {["w","a","s","d"].map((key, i) => <button key={key} aria-label={["앞","왼쪽","뒤","오른쪽"][i]}
         onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); keys.current.add(key); }}
         onLostPointerCapture={() => keys.current.delete(key)}>{["↑","←","↓","→"][i]}</button>)}
